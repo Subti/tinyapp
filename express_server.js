@@ -10,7 +10,13 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com",
 };
 
-function generateRandomString() {}
+function generateRandomString() {
+  let rkey = Math.random().toString(36).slice(2, 8);
+  while (urlDatabase[rkey]) {
+    rkey = Math.random().toString(36).slice(2, 8);
+  }
+  return rkey;
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -46,6 +52,8 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  console.log(urlDatabase);
   res.send("Ok");
 });

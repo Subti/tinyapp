@@ -72,3 +72,8 @@ app.post("/urls/:id/update", (req, res) => {
   urlDatabase[req.params.id] = req.body.urlChange;
   res.redirect(`/urls`);
 });
+
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username);
+  res.redirect("/urls");
+});

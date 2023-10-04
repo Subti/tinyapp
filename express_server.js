@@ -33,6 +33,15 @@ function generateRandomString() {
   return rkey;
 }
 
+function userLookUp(email) {
+  for (let key in users) {
+    if (users[key].email === email) {
+      return key;
+    }
+  }
+  return null;
+}
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -110,6 +119,20 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .send("Email and password are required to complete registration.");
+  }
+
+  if (userLookUp(email)) {
+    return res
+      .status(400)
+      .send("Email already exists. Please use a different email.");
+  }
+
   const id = generateRandomString();
   res.cookie("user_id", id);
   users[id] = {

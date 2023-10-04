@@ -54,10 +54,6 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 app.get("/urls", (req, res) => {
   const templateVars = {
     user: users[req.cookies["user_id"]],
@@ -104,18 +100,54 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect(`/urls`);
 });
 
+/*
+ *
+ *
+ * Authentication Handlers
+ *
+ *
+ */
+
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username);
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res
+      .status(400)
+      .send("Please enter an email and a password in order to log in.");
+  }
+
+  if (!userLookUp(email)) {
+    return res.status(403).send("A user with that e-mail can not be found.");
+  }
+
+  if (users[userLookUp(email)].password !== password) {
+    return res.status(403).send("The password entered is invalid!");
+  }
+
+  res.cookie("user_id", users[userLookUp(email)].id);
   res.redirect("/urls");
+});
+
+app.get("/login", (req, res) => {
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+
+  res.render("login", templateVars);
 });
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/urls");
+  res.redirect("/login");
 });
 
 app.get("/register", (req, res) => {
-  res.render("register");
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+
+  res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
@@ -140,10 +172,13 @@ app.post("/register", (req, res) => {
     email: req.body.email,
     password: req.body.password,
   };
-  console.log(users);
   res.redirect("/urls");
 });
 
-app.get("/login", (req, res) => {
-  res.render("login");
-});
+/*
+ *
+ *
+ * End of Authentication Handlers
+ *
+ *
+ */

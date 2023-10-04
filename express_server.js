@@ -143,3 +143,7 @@ app.post("/register", (req, res) => {
   console.log(users);
   res.redirect("/urls");
 });
+
+app.get("/login", (req, res) => {
+  res.render("login");
+});

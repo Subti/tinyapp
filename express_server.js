@@ -83,6 +83,12 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    return res.send(
+      "The shortened link used does not exist. <a href='/urls'> Go back. </a>"
+    );
+  }
+
   const longURL = urlDatabase[req.params.id];
   return res.redirect(longURL);
 });

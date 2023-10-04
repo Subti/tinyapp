@@ -43,7 +43,7 @@ function userLookUp(email) {
 }
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  return res.send("Hello!");
 });
 
 app.listen(PORT, () => {
@@ -51,7 +51,7 @@ app.listen(PORT, () => {
 });
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+  return res.json(urlDatabase);
 });
 
 app.get("/urls", (req, res) => {
@@ -59,14 +59,18 @@ app.get("/urls", (req, res) => {
     user: users[req.cookies["user_id"]],
     urls: urlDatabase,
   };
-  res.render("urls_index", templateVars);
+  return res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
+  if (!users[req.cookies["user_id"]]) {
+    return res.redirect("/login");
+  }
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
-  res.render("urls_new", templateVars);
+  return res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -75,29 +79,35 @@ app.get("/urls/:id", (req, res) => {
     id: req.params.id,
     longURL: urlDatabase[req.params.id],
   };
-  res.render("urls_show", templateVars);
+  return res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
   const longURL = urlDatabase[req.params.id];
-  res.redirect(longURL);
+  return res.redirect(longURL);
 });
 
 app.post("/urls", (req, res) => {
+  if (!users[req.cookies["user_id"]]) {
+    return res.send(
+      "You can not shorten URLs without logging into an account first."
+    );
+  }
+
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`);
+  return res.redirect(`/urls/${shortURL}`);
 });
 
 app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id];
-  res.redirect(`/urls`);
+  return res.redirect(`/urls`);
 });
 
 app.post("/urls/:id/update", (req, res) => {
   console.log(req.body);
   urlDatabase[req.params.id] = req.body.urlChange;
-  res.redirect(`/urls`);
+  return res.redirect(`/urls`);
 });
 
 /*
@@ -126,28 +136,36 @@ app.post("/login", (req, res) => {
   }
 
   res.cookie("user_id", users[userLookUp(email)].id);
-  res.redirect("/urls");
+  return res.redirect("/urls");
 });
 
 app.get("/login", (req, res) => {
+  if (users[req.cookies["user_id"]]) {
+    return res.redirect("/urls");
+  }
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
 
-  res.render("login", templateVars);
+  return res.render("login", templateVars);
 });
 
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
-  res.redirect("/login");
+  return res.redirect("/login");
 });
 
 app.get("/register", (req, res) => {
+  if (users[req.cookies["user_id"]]) {
+    return res.redirect("/urls");
+  }
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
   };
 
-  res.render("register", templateVars);
+  return res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {
@@ -172,7 +190,7 @@ app.post("/register", (req, res) => {
     email: req.body.email,
     password: req.body.password,
   };
-  res.redirect("/urls");
+  return res.redirect("/urls");
 });
 
 /*

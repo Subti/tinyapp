@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080;
 
@@ -57,6 +58,14 @@ function urlsForUser(id) {
   }
   return urls;
 }
+
+/*
+ *
+ *
+ * URL GET Requests
+ *
+ *
+ */
 
 app.get("/", (req, res) => {
   return res.send("Hello!");
@@ -128,6 +137,24 @@ app.get("/u/:id", (req, res) => {
   return res.redirect(longURL);
 });
 
+/*
+ *
+ *
+ * End of URL GET Requests
+ *
+ *
+ */
+
+// -------------------------------------------------------
+
+/*
+ *
+ *
+ * URL POST Requests
+ *
+ *
+ */
+
 app.post("/urls", (req, res) => {
   if (!users[req.cookies["user_id"]]) {
     return res.send(
@@ -165,6 +192,16 @@ app.post("/urls/:id/update", (req, res) => {
   urlDatabase[req.params.id].longURL = req.body.urlChange;
   return res.redirect(`/urls`);
 });
+
+/*
+ *
+ *
+ * End of URL POST Requests
+ *
+ *
+ */
+
+// -------------------------------------------------------
 
 /*
  *
@@ -211,7 +248,9 @@ app.post("/login", (req, res) => {
     return res.status(403).send("A user with that e-mail can not be found.");
   }
 
-  if (users[userLookUp(email)].password !== password) {
+  const currentUser = users[userLookUp(email)];
+
+  if (!bcrypt.compareSync(password, currentUser.password)) {
     return res.status(403).send("The password entered is invalid!");
   }
 
@@ -239,12 +278,14 @@ app.post("/register", (req, res) => {
       .send("Email already exists. Please use a different email.");
   }
 
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
   const id = generateRandomString();
   res.cookie("user_id", id);
   users[id] = {
     id,
     email: req.body.email,
-    password: req.body.password,
+    password: hashedPassword,
   };
   return res.redirect("/urls");
 });

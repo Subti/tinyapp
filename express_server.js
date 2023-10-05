@@ -1,6 +1,11 @@
 const express = require("express");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
+const {
+  generateRandomString,
+  getUserByEmail,
+  urlsForUser,
+} = require("./helpers");
 const app = express();
 const PORT = 8080;
 
@@ -41,32 +46,9 @@ const urlDatabase = {
   },
 };
 
-function generateRandomString() {
-  let rkey = Math.random().toString(36).slice(2, 8);
-  while (urlDatabase[rkey]) {
-    rkey = Math.random().toString(36).slice(2, 8);
-  }
-  return rkey;
-}
-
-function userLookUp(email) {
-  for (let key in users) {
-    if (users[key].email === email) {
-      return key;
-    }
-  }
-  return null;
-}
-
-function urlsForUser(id) {
-  const urls = {};
-  for (key in urlDatabase) {
-    if (urlDatabase[key].userID === id) {
-      urls[key] = urlDatabase[key].longURL;
-    }
-  }
-  return urls;
-}
+app.listen(PORT, () => {
+  console.log(`Listening on port ${PORT}`);
+});
 
 /*
  *
@@ -77,11 +59,7 @@ function urlsForUser(id) {
  */
 
 app.get("/", (req, res) => {
-  return res.send("Hello!");
-});
-
-app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}`);
+  return res.redirect("/login");
 });
 
 app.get("/urls.json", (req, res) => {
@@ -95,7 +73,7 @@ app.get("/urls", (req, res) => {
     );
   }
 
-  const urls = urlsForUser(req.session.user_id);
+  const urls = urlsForUser(req.session.user_id, urlDatabase);
 
   const templateVars = {
     user: users[req.session.user_id],
@@ -117,7 +95,7 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
-  const urls = urlsForUser(req.session.user_id);
+  const urls = urlsForUser(req.session.user_id, urlDatabase);
 
   if (!urls[req.params.id] || !req.session.user_id) {
     return res
@@ -171,7 +149,7 @@ app.post("/urls", (req, res) => {
     );
   }
 
-  const shortURL = generateRandomString();
+  const shortURL = generateRandomString(urlDatabase);
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
     userID: req.session.user_id,
@@ -252,17 +230,17 @@ app.post("/login", (req, res) => {
       .send("Please enter an email and a password in order to log in.");
   }
 
-  if (!userLookUp(email)) {
+  if (!getUserByEmail(email, users)) {
     return res.status(403).send("A user with that e-mail can not be found.");
   }
 
-  const currentUser = users[userLookUp(email)];
+  const currentUser = users[getUserByEmail(email, users)];
 
   if (!bcrypt.compareSync(password, currentUser.password)) {
     return res.status(403).send("The password entered is invalid!");
   }
 
-  req.session.user_id = users[userLookUp(email)].id;
+  req.session.user_id = users[getUserByEmail(email, users)].id;
   return res.redirect("/urls");
 });
 
@@ -280,7 +258,7 @@ app.post("/register", (req, res) => {
       .send("Email and password are required to complete registration.");
   }
 
-  if (userLookUp(email)) {
+  if (getUserByEmail(email, users)) {
     return res
       .status(400)
       .send("Email already exists. Please use a different email.");
@@ -288,7 +266,7 @@ app.post("/register", (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  const id = generateRandomString();
+  const id = generateRandomString(users);
   req.session.user_id = id;
   users[id] = {
     id,

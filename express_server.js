@@ -48,6 +48,16 @@ function userLookUp(email) {
   return null;
 }
 
+function urlsForUser(id) {
+  const urls = {};
+  for (key in urlDatabase) {
+    if (urlDatabase[key].userID === id) {
+      urls[key] = urlDatabase[key].longURL;
+    }
+  }
+  return urls;
+}
+
 app.get("/", (req, res) => {
   return res.send("Hello!");
 });
@@ -61,10 +71,19 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.cookies["user_id"]) {
+    return res.send(
+      "Please log in to access your urls. <a href='/login'> Log In Here </a>"
+    );
+  }
+
+  const urls = urlsForUser(req.cookies["user_id"]);
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
-    urls: urlDatabase,
+    urls,
   };
+
   return res.render("urls_index", templateVars);
 });
 
@@ -80,6 +99,16 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
+  const urls = urlsForUser(req.cookies["user_id"]);
+
+  if (!urls[req.params.id] || !req.cookies["user_id"]) {
+    return res
+      .status(400)
+      .send(
+        "You do not have permission to edit this link. <a href='/urls/'> Go Back </a>"
+      );
+  }
+
   const templateVars = {
     user: users[req.cookies["user_id"]],
     id: req.params.id,
@@ -115,13 +144,25 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(403)
+      .send("You can not delete URLs without logging into an account first.");
+  }
+
   delete urlDatabase[req.params.id];
   return res.redirect(`/urls`);
 });
 
 app.post("/urls/:id/update", (req, res) => {
+  if (!users[req.cookies["user_id"]]) {
+    return res
+      .status(403)
+      .send("You can not edit URLs without logging into an account first.");
+  }
+
   console.log(req.body);
-  urlDatabase[req.params.id] = req.body.urlChange;
+  urlDatabase[req.params.id].longURL = req.body.urlChange;
   return res.redirect(`/urls`);
 });
 
@@ -132,6 +173,30 @@ app.post("/urls/:id/update", (req, res) => {
  *
  *
  */
+
+app.get("/login", (req, res) => {
+  if (users[req.cookies["user_id"]]) {
+    return res.redirect("/urls");
+  }
+
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+
+  return res.render("login", templateVars);
+});
+
+app.get("/register", (req, res) => {
+  if (users[req.cookies["user_id"]]) {
+    return res.redirect("/urls");
+  }
+
+  const templateVars = {
+    user: users[req.cookies["user_id"]],
+  };
+
+  return res.render("register", templateVars);
+});
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
@@ -154,33 +219,9 @@ app.post("/login", (req, res) => {
   return res.redirect("/urls");
 });
 
-app.get("/login", (req, res) => {
-  if (users[req.cookies["user_id"]]) {
-    return res.redirect("/urls");
-  }
-
-  const templateVars = {
-    user: users[req.cookies["user_id"]],
-  };
-
-  return res.render("login", templateVars);
-});
-
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
   return res.redirect("/login");
-});
-
-app.get("/register", (req, res) => {
-  if (users[req.cookies["user_id"]]) {
-    return res.redirect("/urls");
-  }
-
-  const templateVars = {
-    user: users[req.cookies["user_id"]],
-  };
-
-  return res.render("register", templateVars);
 });
 
 app.post("/register", (req, res) => {

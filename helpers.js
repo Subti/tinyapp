@@ -25,8 +25,32 @@ const urlsForUser = function (id, database) {
   return urls;
 };
 
+const countUniqueVisitors = function (shortURL, visits, currentUserId) {
+  const uniqueVisitors = {};
+  visits.forEach((visit) => {
+    if (visit.shortURL === shortURL && visit.visitor_id === currentUserId) {
+      if (!visits.some((visitor) => visitor.visitor_id === visit.id)) {
+        uniqueVisitors[visit.visitor_id] = true;
+      }
+    }
+  });
+  return Object.keys(uniqueVisitors).length;
+};
+
+const logVisit = function (shortURL, visitor_id, userEmail, visits) {
+  const visit = {
+    shortURL,
+    visitor_id,
+    visitor_email: userEmail,
+    timestamp: new Date(),
+  };
+  visits.push(visit);
+};
+
 module.exports = {
   generateRandomString,
   getUserByEmail,
   urlsForUser,
+  countUniqueVisitors,
+  logVisit,
 };

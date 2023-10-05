@@ -6,6 +6,8 @@ const {
   generateRandomString,
   getUserByEmail,
   urlsForUser,
+  countUniqueVisitors,
+  logVisit,
 } = require("./helpers");
 const app = express();
 const PORT = 8080;
@@ -18,8 +20,10 @@ app.use(
     name: "hehe",
     keys: [
       "sdhfiaiodshfasifs",
-      "lxcfkvoacpvmqwioeudfnmsao",
-      "dsafoihisodfhioasfoi",
+      "sdafuioadshfoas",
+      "dj89waje9adfsha9s",
+      "dsfa0hsd8f9aw4ofsdaf",
+      "dsafiohndsfaisd",
     ],
   })
 );
@@ -41,12 +45,18 @@ const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
     userID: "userRandomID",
+    vists: 0,
+    uniqueVisitors: [],
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
     userID: "user2RandomID",
+    visits: 0,
+    uniqueVisitors: [],
   },
 };
+
+const visits = [];
 
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
@@ -97,9 +107,11 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.get("/urls/:id", (req, res) => {
+  const shortURL = req.params.id;
   const urls = urlsForUser(req.session.user_id, urlDatabase);
+  const visitList = visits.filter((visit) => visit.shortURL === shortURL);
 
-  if (!urls[req.params.id] || !req.session.user_id) {
+  if (!urls[shortURL] || !req.session.user_id) {
     return res
       .status(400)
       .send(
@@ -107,22 +119,39 @@ app.get("/urls/:id", (req, res) => {
       );
   }
 
+  const uniqueVisitorsCount = countUniqueVisitors(
+    shortURL,
+    visits,
+    req.session.user_id
+  );
+
+  const totalVisitsCount = visitList.length;
+
   const templateVars = {
     user: users[req.session.user_id],
-    id: req.params.id,
-    longURL: urlDatabase[req.params.id].longURL,
+    id: shortURL,
+    longURL: urlDatabase[shortURL].longURL,
+    uniqueVisitorsCount,
+    totalVisitsCount,
+    visitList,
   };
+
   return res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
-  if (!urlDatabase[req.params.id]) {
+  const shortURL = req.params.id;
+
+  if (!urlDatabase[shortURL]) {
     return res.send(
       "The shortened link used does not exist. <a href='/urls'> Go back. </a>"
     );
   }
 
-  const longURL = urlDatabase[req.params.id].longURL;
+  const longURL = urlDatabase[shortURL].longURL;
+  const userEmail = users[req.session.user_id].email;
+  logVisit(shortURL, req.session.user_id, userEmail, visits);
+  urlDatabase[shortURL].visits++;
   return res.redirect(longURL);
 });
 
@@ -155,6 +184,7 @@ app.post("/urls", (req, res) => {
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
     userID: req.session.user_id,
+    visits: 0,
   };
   return res.redirect(`/urls/${shortURL}`);
 });
@@ -165,8 +195,9 @@ app.delete("/urls/:id", (req, res) => {
       .status(403)
       .send("You can not delete URLs without logging into an account first.");
   }
+  const shortURL = req.params.id;
 
-  delete urlDatabase[req.params.id];
+  delete urlDatabase[shortURL];
   return res.redirect(`/urls`);
 });
 
@@ -177,7 +208,9 @@ app.put("/urls/:id", (req, res) => {
       .send("You can not edit URLs without logging into an account first.");
   }
 
-  urlDatabase[req.params.id].longURL = req.body.urlChange;
+  const shortURL = req.params.id;
+
+  urlDatabase[shortURL].longURL = req.body.urlChange;
   return res.redirect(`/urls`);
 });
 
@@ -242,7 +275,7 @@ app.post("/login", (req, res) => {
     return res.status(403).send("The password entered is invalid!");
   }
 
-  req.session.user_id = users[getUserByEmail(email, users)].id;
+  req.session.user_id = currentUser.id;
   return res.redirect("/urls");
 });
 

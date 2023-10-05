@@ -1,6 +1,7 @@
 const express = require("express");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcryptjs");
+const methodOverride = require("method-override");
 const {
   generateRandomString,
   getUserByEmail,
@@ -11,6 +12,7 @@ const PORT = 8080;
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride("_method"));
 app.use(
   cookieSession({
     name: "hehe",
@@ -157,7 +159,7 @@ app.post("/urls", (req, res) => {
   return res.redirect(`/urls/${shortURL}`);
 });
 
-app.post("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   if (!users[req.session.user_id]) {
     return res
       .status(403)
@@ -168,7 +170,7 @@ app.post("/urls/:id/delete", (req, res) => {
   return res.redirect(`/urls`);
 });
 
-app.post("/urls/:id/update", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   if (!users[req.session.user_id]) {
     return res
       .status(403)

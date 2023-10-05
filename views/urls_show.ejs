@@ -23,7 +23,7 @@
       </div>
       <div class="card-footer text-muted">
         <h3>Edit Link</h3>
-        <p><form action="/urls/<%= id %>/update" method="post">
+        <p><form action="/urls/<%= id %>?_method=PUT" method="post">
           <label for="urlChange">New URL: </label>
           <input type="text" name="urlChange" placeholder="<%= longURL %>"> 
           <button type="submit" class="btn btn-primary">Update</button></form></p>
